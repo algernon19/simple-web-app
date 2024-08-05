@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Web App</title>
+</head>
+<body>
+    <h1>Welcome, <%= username %></h1>
+
+    <form method="POST" action="/save">
+        <textarea name="text" rows="4" cols="50" placeholder="Enter text here"></textarea><br>
+        <button type="submit">Save</button>
+    </form>
+
+    <h2>Saved Text:</h2>
+    <ul>
+        <% texts.forEach(function(text) { %>
+            <li><%= text %></li>
+        <% }) %>
+    </ul>
+</body>
+</html>

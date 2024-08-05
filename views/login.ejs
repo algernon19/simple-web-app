@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My App</title>
+</head>
+<body>
+    <h1>Welcome, <%= username %>!</h1>
+    <p>Pod serving this request: <%= podName %></p>
+    <ul>
+        <% texts.forEach(function(text) { %>
+            <li><%= text %></li>
+        <% }) %>
+    </ul>
+    <form action="/save" method="post">
+        <input type="text" name="text" />
+        <button type="submit">Save</button>
+    </form>
+</body>
+</html>

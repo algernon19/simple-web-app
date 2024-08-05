@@ -1,16 +1,22 @@
-# Alapértelmezett Node.js image
-FROM node:14
+# Alap kép kiválasztása, amely tartalmazza a legújabb Node.js verziót
+FROM node:20-alpine
 
-# Munka könyvtár létrehozása és beállítása
+# Alkalmazás könyvtár létrehozása
 WORKDIR /app
 
-# package.json és package-lock.json másolása
-COPY package*.json ./
+# Függőségek telepítéséhez szükséges fájlok másolása
+COPY package.json ./
+
+# npm frissítése a legújabb verzióra
+RUN npm install -g npm@10.8.2
 
 # Függőségek telepítése
 RUN npm install
 
-# Alkalmazás kód másolása
+# Sérülékenységek javítása
+RUN npm audit fix --force
+
+# Alkalmazás fájlok másolása
 COPY . .
 
 # Alkalmazás futtatása
