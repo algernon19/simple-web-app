@@ -7,59 +7,57 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
-      padding: 20px;
-      background-color: #f8f9fa;
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f9;
     }
-    .content {
-      max-width: 800px;
-      margin: auto;
-      background-color: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    .container {
+        width: 80%;
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     }
-    .message-form {
-      margin-bottom: 20px;
+    h1 {
+        color: #333;
     }
-    .message-list {
-      list-style-type: none;
-      padding: 0;
-    }
-    .message-item {
-      padding: 10px;
-      border: 1px solid #ccc;
-      margin-bottom: 10px;
-      border-radius: 5px;
-      background-color: #f8f8f8;
-    }
-    .message-item span {
-      display: block;
+    .logout {
+        text-align: center;
+        margin-top: 20px;
     }
   </style>
 </head>
 <body>
-  <div class="content">
-    <h1>Welcome, <%= username %>!</h1>
-    <p><em>Pod serving this request:</em> <%= podName %></p>
+  <div class="container">
+    <h1 class="text-center">Welcome, <%= username %>!</h1>
+    <p class="text-center text-muted">Pod serving this request: <%= podName %></p>
 
-    <form method="POST" action="/save" class="message-form">
+    <form method="POST" action="/message">
       <div class="mb-3">
-        <textarea name="text" class="form-control" rows="4" placeholder="Enter text here"></textarea>
+        <textarea class="form-control" name="message" rows="4" placeholder="Enter your message here..."></textarea>
       </div>
-      <button type="submit" class="btn btn-primary">Save</button>
+      <button type="submit" class="btn btn-primary">Submit</button>
     </form>
 
-    <h2>Saved Text:</h2>
-    <ul class="message-list">
-      <% texts.forEach(function(text) { %>
-        <li class="message-item">
-          <span><strong>Text:</strong> <%= text %></span>
+    <h2 class="mt-4">Saved Messages:</h2>
+    <ul class="list-group">
+      <% messages.forEach(function(msg) { %>
+        <li class="list-group-item">
+          <strong>ID:</strong> <%= msg.id %> 
+          <strong>Message:</strong> <%= msg.message %> 
+          <strong>Timestamp:</strong> <%= msg.created_at %>
         </li>
       <% }) %>
     </ul>
 
-    <a href="/logout" class="btn btn-secondary">Logout</a>
+    <div class="logout mt-4">
+      <a href="/logout" class="btn btn-secondary">Logout</a>
+    </div>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Bootstrap JS and dependencies -->
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
 </body>
 </html>
