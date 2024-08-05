@@ -1,29 +1,27 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const mysql = require('mysql2/promise'); // Módosítás az ígéret alapú API-hoz
+const mysql = require('mysql2/promise');
 const session = require('express-session');
 const MySQLStore = require('express-mysql-session')(session);
-const path = require('path'); // Hozzáadás az `ejs` sablonok elérési útvonalának beállításához
+const path = require('path');
 const bcrypt = require('bcryptjs');
-
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(bodyParser.urlencoded({ extended: true })); 
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 // Set up EJS as the view engine
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views')); // Állítsd be a nézetek mappáját
-
+app.set('views', path.join(__dirname, 'views'));
 
 // MySQL connection configuration
 const dbOptions = {
-  host: process.env.DB_HOST,       // Az adatbázis hosztneve a Kubernetes klaszteren belül
-  user: process.env.DB_USER,       // Az adatbázis felhasználója
-  password: process.env.DB_PASSWORD, // Az adatbázis jelszava
-  database: process.env.DB_NAME    // Az adatbázis neve
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME
 };
 
 // Create a MySQL connection pool
@@ -43,7 +41,7 @@ testConnection();
 
 const sessionStore = new MySQLStore({}, pool);
 
-// Middleware
+// Middleware for session handling
 app.use(session({
   secret: 'your-secret-key',
   resave: false,
@@ -51,39 +49,15 @@ app.use(session({
   store: sessionStore
 }));
 
-// Create the database and users table if not exists
-const createDatabaseAndTables = async () => {
-  const createDatabaseQuery = `CREATE DATABASE IF NOT EXISTS ${dbOptions.database}`;
-  const createTableQuery = `
-    CREATE TABLE IF NOT EXISTS users (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      username VARCHAR(255) NOT NULL UNIQUE,
-      password VARCHAR(255) NOT NULL
-    );
-  `;
-  const createMessagesTableQuery = `
-    CREATE TABLE IF NOT EXISTS messages (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      message TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `;
-
-  try {
-    await pool.query(createDatabaseQuery);
-    await pool.query(`USE ${dbOptions.database}`);
-    await pool.query(createTableQuery);
-    await pool.query(createMessagesTableQuery);
-    console.log('Database and tables created');
-  } catch (err) {
-    console.error('Error creating database and tables:', err);
+// Middleware for redirecting logged-in users
+const redirectIfLoggedIn = (req, res, next) => {
+  if (req.session.userId) {
+    return res.redirect('/');
   }
+  next();
 };
 
-// Initialize database and tables
-createDatabaseAndTables();
-
-// Simple authentication middleware
+// Middleware for checking authentication
 const auth = (req, res, next) => {
   if (req.session.userId) {
     next();
@@ -93,28 +67,23 @@ const auth = (req, res, next) => {
 };
 
 // Routes
-// Home route
 app.get('/', auth, async (req, res) => {
   try {
+    // Fetch messages from the database
     const [messages] = await pool.query('SELECT * FROM messages ORDER BY created_at DESC');
-    res.send(`
-      <h1>Messages</h1>
-      <form action="/message" method="post">
-        <textarea name="message" rows="4" cols="50"></textarea><br>
-        <input type="submit" value="Submit">
-      </form>
-      <ul>
-        ${messages.map(msg => `<li><strong>ID:</strong> ${msg.id} <strong>Message:</strong> ${msg.message} <strong>Timestamp:</strong> ${msg.created_at}</li>`).join('')}
-      </ul>
-      <a href="/logout">Logout</a>
-    `);
+
+    // Render index.ejs with the appropriate data
+    res.render('index', {
+      username: req.session.username,
+      messages: messages,
+      podName: process.env.POD_NAME || 'Not specified'
+    });
   } catch (err) {
     console.error('Database query failed:', err);
     res.status(500).send('Database query failed');
   }
 });
 
-// Message submission route
 app.post('/message', auth, async (req, res) => {
   const { message } = req.body;
 
@@ -127,8 +96,9 @@ app.post('/message', auth, async (req, res) => {
   }
 });
 
-app.get('/login', (req, res) => {
-  res.render('login');
+// Login route
+app.get('/login', redirectIfLoggedIn, (req, res) => {
+  res.render('login', { error: null }); // Initialize `error` as null
 });
 
 app.post('/login', async (req, res) => {
@@ -141,22 +111,31 @@ app.post('/login', async (req, res) => {
     if (results.length > 0) {
       const user = results[0];
 
+      // Log the original password
+      console.log('User input password:', password);
+
+      // Log the hashed password from the database
+      console.log('Database hashed password:', user.password);
+
       // Verify password with bcrypt
       const match = await bcrypt.compare(password, user.password);
+
+      // Log the result of comparison
+      console.log('Password match result:', match);
 
       if (match) {
         req.session.userId = user.id;
         req.session.username = username;
         res.redirect('/');
       } else {
-        res.send('Invalid credentials');
+        res.render('login', { error: 'Invalid credentials' });
       }
     } else {
-      res.send('Invalid credentials');
+      res.render('login', { error: 'Invalid credentials' });
     }
   } catch (err) {
     console.error('Database query failed:', err);
-    res.status(500).send('Database query failed');
+    res.render('login', { error: 'Database query failed' });
   }
 });
 
@@ -166,7 +145,6 @@ const hashPassword = async (password) => {
   const hashedPassword = await bcrypt.hash(password, saltRounds);
   return hashedPassword;
 };
-
 
 app.get('/logout', (req, res) => {
   req.session.destroy(err => {
@@ -178,17 +156,33 @@ app.get('/logout', (req, res) => {
   });
 });
 
+// Registration route
+app.get('/register', redirectIfLoggedIn, (req, res) => {
+  res.render('register', { error: null }); // Initialize `error` as null
+});
+
 app.post('/register', async (req, res) => {
   const { username, password } = req.body;
-  const hashedPassword = await hashPassword(password);
-  const query = 'INSERT INTO users (username, password) VALUES (?, ?)';
+  if (!username || !password) {
+    return res.render('register', { error: 'Username and password are required' });
+  }
 
   try {
+    // Check if user already exists
+    const [existingUsers] = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
+    if (existingUsers.length > 0) {
+      return res.render('register', { error: 'Username already exists' });
+    }
+
+    // Hash the password
+    const hashedPassword = await hashPassword(password);
+    const query = 'INSERT INTO users (username, password) VALUES (?, ?)';
     await pool.query(query, [username, hashedPassword]);
-    res.send('User registered successfully');
+
+    res.redirect('/login');
   } catch (err) {
     console.error('Database insert failed:', err);
-    res.status(500).send('Database insert failed');
+    res.render('register', { error: 'Registration failed. Please try again.' });
   }
 });
 
