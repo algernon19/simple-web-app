@@ -19,6 +19,8 @@
     "connect-mongo": "^4.6.0",
     "mongodb": "^4.1.0",
     "ejs": "^3.1.8",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "express-mysql-session": "^3.0.1",
+    "mysql2": "3.11.0"
   }
 }
