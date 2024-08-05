@@ -3,12 +3,20 @@ const bodyParser = require('body-parser');
 const mysql = require('mysql2/promise'); // Módosítás az ígéret alapú API-hoz
 const session = require('express-session');
 const MySQLStore = require('express-mysql-session')(session);
+const path = require('path'); // Hozzáadás az `ejs` sablonok elérési útvonalának beállításához
+const bcrypt = require('bcryptjs');
+
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(bodyParser.urlencoded({ extended: true })); 
 app.use(bodyParser.json());
+
+// Set up EJS as the view engine
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views')); // Állítsd be a nézetek mappáját
+
 
 // MySQL connection configuration
 const dbOptions = {
@@ -125,13 +133,17 @@ app.get('/login', (req, res) => {
 
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
-  const query = 'SELECT * FROM users WHERE username = ?';
 
   try {
-    const [results] = await pool.query(query, [username]);
+    // Fetch user by username
+    const [results] = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
+
     if (results.length > 0) {
       const user = results[0];
+
+      // Verify password with bcrypt
       const match = await bcrypt.compare(password, user.password);
+
       if (match) {
         req.session.userId = user.id;
         req.session.username = username;
