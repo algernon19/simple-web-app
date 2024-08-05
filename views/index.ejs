@@ -6,7 +6,8 @@
     <title>Simple Web App</title>
 </head>
 <body>
-    <h1>Welcome, <%= username %></h1>
+    <h1>Welcome, <%= username %>!</h1>
+    <p>Pod serving this request: <%= podName %></p>
 
     <form method="POST" action="/save">
         <textarea name="text" rows="4" cols="50" placeholder="Enter text here"></textarea><br>
@@ -19,5 +20,6 @@
             <li><%= text %></li>
         <% }) %>
     </ul>
+    <a href="/logout">Logout</a>
 </body>
 </html>

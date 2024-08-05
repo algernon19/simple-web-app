@@ -19,7 +19,7 @@ mongoose.connect(process.env.MONGO_URL, { useNewUrlParser: true, useUnifiedTopol
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(session({
-  secret: 'your-secret-key',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({ mongoUrl: process.env.MONGO_URL })
@@ -103,6 +103,16 @@ app.post('/save', auth, async (req, res) => {
     console.error('Error saving text:', error);
     res.status(500).send('Internal Server Error');
   }
+});
+
+// Logout route
+app.get('/logout', (req, res) => {
+  req.session.destroy(err => {
+    if (err) {
+      return res.redirect('/');
+    }
+    res.redirect('/login');
+  });
 });
 
 app.listen(port, () => {
